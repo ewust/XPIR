@@ -28,6 +28,7 @@ class HomomorphicCryptoFactory_internal
 public:
   static HomomorphicCrypto* getCrypto(std::string cryptoType);
   static HomomorphicCrypto* getCryptoMethod(std::string cryptoType);
+  static HomomorphicCrypto* getCryptoMethod(std::string cryptoType, uint8_t *seed, size_t seed_len);
   static void getAllCryptoSystems(std::vector<HomomorphicCrypto*>& crypto_sys_vec);
   static void getOneCryptoSystem(std::vector<HomomorphicCrypto*>& crypto_sys_vec, std::string crypto_system_desc);
   static const unsigned int crypto_method_nbr;

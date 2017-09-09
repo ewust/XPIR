@@ -23,6 +23,7 @@
 #include <boost/algorithm/string.hpp>
 #include "../pir/PIRParameters.hpp"
 #include "AbstractPublicParameters.hpp"
+#include "prng/fastrandombytes.h"
 
 #ifndef DEF_CRYPTOGRAPHICSYSTEM
 #define DEF_CRYPTOGRAPHICSYSTEM
@@ -46,6 +47,8 @@ protected:
     static unsigned int default_security_bits;
 public:
     HomomorphicCrypto(const std::string& crypto_name);
+
+    void setrandseed(uint8_t *seed, size_t seed_len);
     
     virtual char* encrypt(unsigned int ui, unsigned int )=0;
     virtual char* encrypt(char* data, size_t, unsigned int exponent )=0;

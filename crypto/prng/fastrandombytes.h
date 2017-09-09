@@ -8,5 +8,6 @@
 #define FASTRANDOMBYTES_H
 
 void fastrandombytes(unsigned char *r, unsigned long long rlen);
+void setrandomseed(uint8_t *seed, size_t len);
 
 #endif

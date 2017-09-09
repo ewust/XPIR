@@ -21,6 +21,11 @@
   {
     return HomomorphicCryptoFactory_internal::getCryptoMethod(cryptoType);
   }
+
+  HomomorphicCrypto* HomomorphicCryptoFactory::getCryptoMethod(std::string cryptoType, uint8_t *seed, size_t seed_len)
+  {
+    return HomomorphicCryptoFactory_internal::getCryptoMethod(cryptoType, seed, seed_len);
+  }
   
   void HomomorphicCryptoFactory::printAllCryptoParams() {
 	  std::cout << "Available crypto parameters : (CryptoSystem::SecurityMax::PolyDegree::ModulusBitsize)" << std::endl;  

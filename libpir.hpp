@@ -45,6 +45,7 @@ public:
   *   method as a string and returns an instance of a cryptosystem for the given parameters  
   **/
   static HomomorphicCrypto* getCryptoMethod(std::string cryptoParams);
+  static HomomorphicCrypto* getCryptoMethod(std::string cryptoParams, uint8_t *seed, size_t seed_len);
 };
 
 

@@ -22,3 +22,7 @@ HomomorphicCrypto::HomomorphicCrypto(const std::string& crypto_name) :
 {}
 HomomorphicCrypto::~HomomorphicCrypto() {}
 
+void HomomorphicCrypto::setrandseed(uint8_t *seed, size_t seed_len)
+{
+    setrandomseed(seed, seed_len);
+}

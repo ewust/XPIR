@@ -16,6 +16,7 @@
 */
 
 #include "HomomorphicCryptoFactory_internal.hpp"
+#include "prng/fastrandombytes.h"
 
 
 const unsigned int HomomorphicCryptoFactory_internal::crypto_method_nbr = 2;
@@ -62,6 +63,13 @@ HomomorphicCrypto* HomomorphicCryptoFactory_internal::getCryptoMethod(std::strin
 
   h->setNewParameters(crypto_system_desc);
   return h;
+}
+
+HomomorphicCrypto* HomomorphicCryptoFactory_internal::getCryptoMethod(std::string cryptoType, 
+                uint8_t *seed, size_t seed_len)
+{
+    setrandomseed(seed, seed_len);
+    return getCryptoMethod(cryptoType);
 }
 
   
