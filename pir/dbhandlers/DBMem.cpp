@@ -102,6 +102,15 @@ void DBMem::readAggregatedStream(uint64_t streamNb, uint64_t alpha, uint64_t off
     uint64_t endStream = std::min(streamNb*alpha + alpha - 1, getNbStream() - 1);
     uint64_t paddingStreams = std::max((long long)((streamNb)*alpha+alpha) - (long long)getNbStream(), (long long)0);
 
+    memcpy(rawBits, data.data()+startStream*maxFileBytesize+offset, fileByteSize*(endStream - startStream + 1));
+
+    if(paddingStreams !=0)
+    {
+	    bzero(rawBits + (endStream % alpha) * fileByteSize, fileByteSize*paddingStreams);
+    }
+
+    return;
+
     //memcpy(rawBits, data.data()+??, 
     //memset(rawBits, 0xaa, fileByteSize*(endStream-startStream + 1));
 
@@ -115,9 +124,5 @@ void DBMem::readAggregatedStream(uint64_t streamNb, uint64_t alpha, uint64_t off
 		closeStream(stream);
 	}
 
-    if(paddingStreams !=0)
-    {
-	    bzero(rawBits + (endStream % alpha) * fileByteSize, fileByteSize*paddingStreams);
-    }
 }
 
