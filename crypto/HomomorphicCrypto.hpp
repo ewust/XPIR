@@ -47,6 +47,7 @@ protected:
     static unsigned int default_security_bits;
 public:
     HomomorphicCrypto(const std::string& crypto_name);
+    HomomorphicCrypto(const std::string& crypto_name, uint8_t *seed, size_t seed_len);
 
     void setrandseed(uint8_t *seed, size_t seed_len);
     

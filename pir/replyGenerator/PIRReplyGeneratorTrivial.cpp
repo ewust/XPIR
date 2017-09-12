@@ -185,18 +185,3 @@ PIRReplyGeneratorTrivial::~PIRReplyGeneratorTrivial()
 void PIRReplyGeneratorTrivial::setCryptoMethod(CryptographicSystem* cm) {
 	cryptoMethod = (NoCryptography *)cm;
 }
-
-void PIRReplyGeneratorTrivial::freeResult()
-{
-  if(repliesArray!=NULL)
-  {
-    for(unsigned i=0 ; i < repliesAmount; i++)
-    {
-      if(repliesArray[i]!=NULL) free(repliesArray[i]);
-      repliesArray[i] = NULL;
-    }
-    free(repliesArray);
-    repliesArray=NULL;
-  }
-}
-

@@ -17,6 +17,16 @@
 
 #include "GenericPIRReplyGenerator.hpp"
 
+imported_database::~imported_database(){
+    for (unsigned int i = 0 ; i < nbElements ; i++){
+        // uh...
+        //free(((lwe_in_data *)imported_database_ptr)[i].p[0]);
+        //free(((lwe_in_data *)imported_database_ptr)[i].p);
+    }
+    free(imported_database_ptr);
+}
+
+
 GenericPIRReplyGenerator::GenericPIRReplyGenerator():
   pirParam(emptyPIRParams),
   repliesArray(NULL),
@@ -39,7 +49,35 @@ GenericPIRReplyGenerator::GenericPIRReplyGenerator(PIRParameters& param, DBHandl
   mutex.lock();
 }
 
+/*
 void GenericPIRReplyGenerator::setPirParams(PIRParameters& param)
 {
   pirParam = param;
+}
+*/
+
+void GenericPIRReplyGenerator::pushQuery(char *rawQuery)
+{
+    pushQuery(rawQuery, cryptoMethod->getPublicParameters().getCiphertextBitsize()/8, current_dim_index, current_query_index);
+    current_query_index++;
+    if (current_query_index >= pirParam.n[current_dim_index])
+    {
+        current_query_index = 0;
+        current_dim_index++;
+    }
+    if (current_dim_index >= pirParam.d)
+    {
+        std::cout << "PIRReplyGenerator: Finished importing query (this message should appear only once)" << std::endl;
+    }
+}
+
+void GenericPIRReplyGenerator::freeResult()
+{
+  for(unsigned i=0 ; i < repliesAmount; i++)
+  {
+    if(repliesArray[i]!=NULL) delete[] repliesArray[i];
+    repliesArray[i] = NULL;
+  }
+  free(repliesArray);
+  repliesArray=NULL;
 }

@@ -46,6 +46,7 @@ class NoCryptography : public HomomorphicCrypto
     long setandgetAbsBitPerCiphertext(unsigned int elt_nbr);
     std::string getSerializedCryptoParams(bool shortversion=true);
     double estimateAbsTime(std::string crypto_param);
+    void setRandSeed(uint8_t *seed, size_t seed_len) {}
     
 };
 

@@ -31,8 +31,6 @@ public:
     void setPirParams(PIRParameters& param);
 private:
     bool lwe;
-    uint64_t current_query_index;
-    uint64_t current_dim_index;
 #ifdef SHOUP
     lwe_query ***queriesBuf;
 #else
@@ -51,22 +49,37 @@ private:
     void freeInputData();
     void freeFakeInputData();
 protected:
-    void freeResult();
     void freeQueries();
     void freeQueriesBuffer();
     void generateReply();
     imported_database_t generateReplyGeneric(bool keep_imported_data = false);
     void generateReplyGenericFromData(const imported_database_t database);
+    void generateReplyGenericFromData(const imported_database_t *database);
     size_t getTotalSystemMemory();
     lwe_in_data* input_data;
-    LatticesBasedCryptosystem* cryptoMethod;
+    //LatticesBasedCryptosystem* cryptoMethod;
     uint64_t currentMaxNbPolys;
 	
 public:
     PIRReplyGeneratorNFL_internal();
     PIRReplyGeneratorNFL_internal(PIRParameters& param, DBHandler *db);
     ~PIRReplyGeneratorNFL_internal();
-    void importDataNFL(uint64_t offset, uint64_t bytes_per_file);
+    void importData(uint64_t offset, uint64_t bytes_per_file);  // Was importDataNFL
+
+    imported_database* importDatabase(uint64_t offset, uint64_t bytes_per_db_element)
+    {
+        importData(offset, bytes_per_db_element);
+        imported_database* precomputed = new imported_database();
+        precomputed->imported_database_ptr=input_data;
+
+        precomputed->nbElements = ceil((float)dbhandler->getNbStream()/pirParam.alpha); 
+        precomputed->polysPerElement = currentMaxNbPolys; 
+        precomputed->beforeImportElementBytesize=bytes_per_db_element;
+        return precomputed;
+    }
+
+
+
     void initQueriesBuffer();
     void generateReplyExternal(imported_database_t* database);
     double generateReplySimulation(const PIRParameters& pir_params, uint64_t plaintext_nbr);

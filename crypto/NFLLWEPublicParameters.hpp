@@ -75,7 +75,5 @@ class NFLLWEPublicParameters : public AbstractPublicParameters
     unsigned int getCiphertextBitsize();
     unsigned int getCiphBitsizeFromRecLvl(unsigned int);
     unsigned int getQuerySizeFromRecLvl(unsigned int);
-
-
 };
 #endif

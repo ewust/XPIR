@@ -30,7 +30,7 @@ private:
 //    uint64_t currentMaxNbPolys;
 //    lwe_query **queriesBuf;
     uint64_t totalNbChunks;
-    NoCryptography * cryptoMethod;
+    //NoCryptography * cryptoMethod;
     char* input_data;
     bool firstTimeImport;
     //    LatticesBasedCryptosystem* cryptoMethod;
@@ -43,7 +43,6 @@ private:
 //    void importFakeData(uint64_t file_kb_size);
 //    void pushFakeQuery();
     void generateReply();
-    void freeResult();
 //    void freeInputData();
 //    void freeFakeInputData();
 public:
@@ -52,13 +51,21 @@ public:
     PIRReplyGeneratorTrivial(PIRParameters& param, DBHandler *db);
     ~PIRReplyGeneratorTrivial();
     void importData();
+    void importData(uint64_t offset, uint64_t bytes_per_db_element) {
+        importData();
+    }
     void initQueriesBuffer();
+    void setPirParams(PIRParameters& param_) { pirParam = param_; }
     imported_database_t generateReplyGeneric(bool keep_imported_data = false);
     void generateReplyGenericFromData(const imported_database_t database);
+    void generateReplyGenericFromData(const imported_database_t *database) {}
     double generateReplySimulation(const PIRParameters& pir_params, uint64_t plaintext_nbr);
     unsigned long computeReplySizeInChunks(unsigned long int);
     void pushQuery(char* rawQuery, unsigned int size, int dim, int nbr);
     void setCryptoMethod(CryptographicSystem* cm);
+    void freeQueries() { }
+    imported_database *importDatabase(uint64_t offset, uint64_t bytes_per_db_element) {}
+
 };
 
 #endif

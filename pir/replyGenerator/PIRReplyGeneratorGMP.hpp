@@ -38,7 +38,7 @@ class PIRReplyGeneratorGMP : public GenericPIRReplyGenerator
 
     bool firstTime;
     bool finished;
-		PaillierAdapter* cryptoMethod;
+		//PaillierAdapter* cryptoMethod;
 		
 		void computeMul (mpz_t query, mpz_t n, mpz_t res, int);
 		void computeSum (mpz_t a, mpz_t b, int);
@@ -50,12 +50,29 @@ class PIRReplyGeneratorGMP : public GenericPIRReplyGenerator
 													int s,
 													mpz_t* result); 
 		void importData();
+        void importData(uint64_t offset, uint64_t bytes_per_db_element) {
+            importData();
+        }
+
+        imported_database *importDatabase(uint64_t offset, uint64_t bytes_per_db_element)
+        {
+            importData(offset, bytes_per_db_element);
+            imported_database* precomputed = new imported_database();
+            precomputed->imported_database_ptr=datae;
+
+            precomputed->nbElements = ceil((float)dbhandler->getNbStream()/pirParam.alpha); 
+            //precomputed->polysPerElement = currentMaxNbPolys; 
+            precomputed->polysPerElement = maxChunkSize;
+            precomputed->beforeImportElementBytesize=bytes_per_db_element;
+            return precomputed;
+        }
+
+
     void importFakeData(uint64_t plaintext_nbr);
     void clearFakeData(uint64_t plaintext_nbr);
 
     void generateReply();
     void cleanQueryBuffer();
-    void freeResult();
 
 	public:
 
@@ -65,6 +82,7 @@ class PIRReplyGeneratorGMP : public GenericPIRReplyGenerator
 
     imported_database_t generateReplyGeneric(bool keep_imported_data);
     void generateReplyGenericFromData(const imported_database_t database);
+    void generateReplyGenericFromData(const imported_database_t *database);
     double generateReplySimulation(const PIRParameters& pir_params, uint64_t plaintext_nbr);
 
 		void initQueriesBuffer();
@@ -75,5 +93,6 @@ class PIRReplyGeneratorGMP : public GenericPIRReplyGenerator
 		void pushQuery(char* rawQuery, unsigned int size, int dim, int nbr);
 
 		unsigned long computeReplySizeInChunks(unsigned long int);
+        void freeQueries();
 };
 #endif

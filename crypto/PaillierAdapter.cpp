@@ -467,16 +467,10 @@ PaillierAdapter::get_prime_of_size(mpz_t rop, unsigned int length)
 PaillierAdapter::getRandFromfile(int len, mpz_t* val )
 {
   char* p = new char[len + 1]();
-  std::ifstream f("/dev/urandom", ios::in | ios::binary);
-
-  for(int i = 0; i < len; i++)
-  {
-    f.read(p+i, 1);
-  }
+  fastrandombytes((unsigned char*)p, len);
   mpz_import(*val, len, 1, sizeof(char), 0, 0, p);
 
-  f.close();
-
+  memset(p, 0, len);
   delete[] p;
 }
 

@@ -30,11 +30,11 @@ PIRReplyGeneratorNFL_internal::PIRReplyGeneratorNFL_internal():
   lwe(false),
   currentMaxNbPolys(0),
   queriesBuf(NULL),
-  current_query_index(0),
-  current_dim_index(0),
-  input_data(NULL),
-  cryptoMethod(NULL)
+  input_data(NULL)
 {
+    current_query_index = 0;
+    current_dim_index = 0;
+    cryptoMethod = NULL;
 }
 
 /**
@@ -48,12 +48,12 @@ PIRReplyGeneratorNFL_internal::PIRReplyGeneratorNFL_internal( PIRParameters& par
   currentMaxNbPolys(0),
   GenericPIRReplyGenerator(param,db),
   queriesBuf(NULL),
-  current_query_index(0),
-  current_dim_index(0),
-  input_data(NULL),
-  cryptoMethod(NULL)
+  input_data(NULL)
 {
   // cryptoMethod will be set later by setCryptoMethod
+  current_query_index = 0;
+  current_dim_index = 0;
+  cryptoMethod = NULL;
 }
 
 
@@ -64,19 +64,19 @@ void PIRReplyGeneratorNFL_internal::importFakeData(uint64_t plaintext_nbr)
   uint64_t files_nbr = 1;
   for (unsigned int i = 0 ; i < pirParam.d ; i++) files_nbr *= pirParam.n[i];
   
-  uint64_t plain_bytesize = cryptoMethod->getnflInstance().getpolyDegree()*cryptoMethod->getnflInstance().getnbModuli()*8; 
+  uint64_t plain_bytesize = ((LatticesBasedCryptosystem*)cryptoMethod)->getnflInstance().getpolyDegree()*((LatticesBasedCryptosystem*)cryptoMethod)->getnflInstance().getnbModuli()*8; 
   dbhandler = new DBGenerator(files_nbr, plaintext_nbr*plain_bytesize, true);
   
   currentMaxNbPolys = plaintext_nbr;
   
-  importDataNFL(0, plaintext_nbr*plain_bytesize);
+  importData(0, plaintext_nbr*plain_bytesize);
 }
 
 
 /**
  *	Convert raw data from file in usable NFL data.
  **/
-void PIRReplyGeneratorNFL_internal::importDataNFL(uint64_t offset, uint64_t bytes_per_file)
+void PIRReplyGeneratorNFL_internal::importData(uint64_t offset, uint64_t bytes_per_file)
 {
 	uint64_t fileByteSize = min(bytes_per_file, dbhandler->getmaxFileBytesize()-offset);
   uint64_t theoretical_files_nbr = 1;
@@ -118,7 +118,7 @@ void PIRReplyGeneratorNFL_internal::importDataNFL(uint64_t offset, uint64_t byte
     }
     input_data[i].nbPolys = nbpolys; 
 #else
-    input_data[i].p = cryptoMethod->deserializeDataNFL((unsigned char**)&rawBits, (uint64_t) 1, fileByteSize*pirParam.alpha*GlobalConstant::kBitsPerByte, input_data[i].nbPolys);
+    input_data[i].p = ((LatticesBasedCryptosystem*)cryptoMethod)->deserializeDataNFL((unsigned char**)&rawBits, (uint64_t) 1, fileByteSize*pirParam.alpha*GlobalConstant::kBitsPerByte, input_data[i].nbPolys);
 #endif
 
 #ifdef PERF_TIMERS
@@ -147,8 +147,8 @@ void PIRReplyGeneratorNFL_internal::importDataNFL(uint64_t offset, uint64_t byte
 	{
 	 	input_data[i].p = (poly64 *) malloc(currentMaxNbPolys*sizeof(poly64));
 	 
-	 	input_data[i].p[0] = (poly64) calloc(cryptoMethod->getpolyDegree()*cryptoMethod->getnbModuli()*currentMaxNbPolys,sizeof(uint64_t));
-	 	for (uint64_t j = 1 ; j < currentMaxNbPolys ; j++) input_data[i].p[j] = input_data[i].p[0]+cryptoMethod->getpolyDegree()*cryptoMethod->getnbModuli()*j;
+	 	input_data[i].p[0] = (poly64) calloc(((LatticesBasedCryptosystem*)cryptoMethod)->getpolyDegree()*((LatticesBasedCryptosystem*)cryptoMethod)->getnbModuli()*currentMaxNbPolys,sizeof(uint64_t));
+	 	for (uint64_t j = 1 ; j < currentMaxNbPolys ; j++) input_data[i].p[j] = input_data[i].p[0]+((LatticesBasedCryptosystem*)cryptoMethod)->getpolyDegree()*((LatticesBasedCryptosystem*)cryptoMethod)->getnbModuli()*j;
 	 
 	 	input_data[i].nbPolys = currentMaxNbPolys;
 	}
@@ -261,7 +261,7 @@ imported_database_t PIRReplyGeneratorNFL_internal::generateReplyGeneric(bool kee
 
     repliesIndex = computeReplySizeInChunks(iteration*max_readable_size);
     // Import a chunk of max_readable_size bytes per file with an adapted offset
-    importDataNFL(iteration*max_readable_size, max_readable_size);
+    importData(iteration*max_readable_size, max_readable_size);
     if(keep_imported_data && iteration == nbr_of_iterations - 1)  // && added for Perf test but is no harmful
     {
       database_wrapper.polysPerElement = currentMaxNbPolys;
@@ -292,6 +292,25 @@ imported_database_t PIRReplyGeneratorNFL_internal::generateReplyGeneric(bool kee
   return database_wrapper;
 }
 #endif
+
+
+void PIRReplyGeneratorNFL_internal::generateReplyGenericFromData(const imported_database_t *database)
+{
+    // Define the reply size
+    repliesAmount = computeReplySizeInChunks(database->beforeImportElementBytesize);
+    uint64_t polysize = ((LatticesBasedCryptosystem*)cryptoMethod)->getpolyDegree() * ((LatticesBasedCryptosystem*)cryptoMethod)->getnbModuli()*sizeof(uint64_t);
+    uint64_t sizeOfReply=repliesAmount*polysize;
+    input_data = (lwe_in_data*) database->imported_database_ptr;
+    currentMaxNbPolys = database->polysPerElement;
+
+    // The internal generator is locked by default waiting for the query to be received 
+    // in this API we let the user deal with synchronisation so the lock is not needed
+    mutex.try_lock();
+    mutex.unlock();
+
+    generateReply();
+}
+
 // Function used to generate a PIR reply if:
 // - database is small enough to be kept in memory
 // - it has already been imported to it
@@ -473,7 +492,7 @@ double PIRReplyGeneratorNFL_internal::generateReplySimulation(const PIRParameter
 
 double PIRReplyGeneratorNFL_internal::precomputationSimulation(const PIRParameters& pir_params, uint64_t plaintext_nbr)
 {
-  NFLlib *nflptr = &(cryptoMethod->getnflInstance());
+  NFLlib *nflptr = &(((LatticesBasedCryptosystem*)cryptoMethod)->getnflInstance());
   setPirParams((PIRParameters&)pir_params);
   pushFakeQuery();
   importFakeData(plaintext_nbr);
@@ -485,7 +504,7 @@ double PIRReplyGeneratorNFL_internal::precomputationSimulation(const PIRParamete
   for (unsigned int i = 0 ; i < files_nbr ; i++)
   {
       poly64 *tmp;
-      tmp = cryptoMethod->deserializeDataNFL((unsigned char**)(input_data[i].p), (uint64_t) plaintext_nbr, cryptoMethod->getPublicParameters().getCiphertextBitsize()/2 , input_data[i].nbPolys);
+      tmp = ((LatticesBasedCryptosystem*)cryptoMethod)->deserializeDataNFL((unsigned char**)(input_data[i].p), (uint64_t) plaintext_nbr, cryptoMethod->getPublicParameters().getCiphertextBitsize()/2 , input_data[i].nbPolys);
 	    free(tmp[0]);	
       tmp = NULL;
   }
@@ -535,11 +554,11 @@ lwe_cipher* result)
   for (unsigned int current_poly=0 ; current_poly < currentMaxNbPolys ; current_poly++)
 	{ 
 		posix_memalign((void**) &(result[current_poly].a), 32, 
-        2*cryptoMethod->getpolyDegree()*cryptoMethod->getnbModuli()*sizeof(uint64_t));
+        2*((LatticesBasedCryptosystem*)cryptoMethod)->getpolyDegree()*((LatticesBasedCryptosystem*)cryptoMethod)->getnbModuli()*sizeof(uint64_t));
 		memset(result[current_poly].a,0,
-        2*cryptoMethod->getpolyDegree()*cryptoMethod->getnbModuli()*sizeof(uint64_t));
+        2*((LatticesBasedCryptosystem*)cryptoMethod)->getpolyDegree()*((LatticesBasedCryptosystem*)cryptoMethod)->getnbModuli()*sizeof(uint64_t));
 		result[current_poly].b = (uint64_t *) result[current_poly].a +
-    cryptoMethod->getpolyDegree()*cryptoMethod->getnbModuli();
+    ((LatticesBasedCryptosystem*)cryptoMethod)->getpolyDegree()*((LatticesBasedCryptosystem*)cryptoMethod)->getnbModuli();
     for (unsigned int offset = 0; offset < query_size; offset += 200)
     {
       for (unsigned int query_index = offset, ggg=0; query_index < query_size && ggg < 200 ; 
@@ -561,10 +580,10 @@ lwe_cipher* result)
           }
 		    }
 #endif
-			  cryptoMethod->mulandadd(result[current_poly], data[query_index], queries[0][query_index],
+			  ((LatticesBasedCryptosystem*)cryptoMethod)->mulandadd(result[current_poly], data[query_index], queries[0][query_index],
           queries[1][query_index], current_poly, lvl);
 #else
-			  cryptoMethod->mulandadd(result[current_poly], data[query_index], queries[query_index], 
+			  ((LatticesBasedCryptosystem*)cryptoMethod)->mulandadd(result[current_poly], data[query_index], queries[query_index], 
           current_poly, lvl);
 #endif				
 		  }
@@ -615,7 +634,7 @@ lwe_in_data* PIRReplyGeneratorNFL_internal::fromResulttoInData(lwe_cipher** inte
       }
 
 	    // Ciphertexts can be serialized in a single block as a,b are allocatted contiguously
-	    in_data2b[i].p = cryptoMethod->deserializeDataNFL((unsigned char**)bufferOfBuffers, 
+	    in_data2b[i].p = ((LatticesBasedCryptosystem*)cryptoMethod)->deserializeDataNFL((unsigned char**)bufferOfBuffers, 
 														currentMaxNbPolys, 
 														cryptoMethod->getPublicParameters().getCiphertextBitsize(), 
 														in_data2b[i].nbPolys);
@@ -738,8 +757,8 @@ void PIRReplyGeneratorNFL_internal::pushQuery(char* rawQuery)
 
 void PIRReplyGeneratorNFL_internal::pushQuery(char* rawQuery, unsigned int size, int dim, int nbr)
 {
-  unsigned int polyDegree = cryptoMethod->getpolyDegree();
-  unsigned int nbModuli = cryptoMethod->getnbModuli();
+  unsigned int polyDegree = ((LatticesBasedCryptosystem*)cryptoMethod)->getpolyDegree();
+  unsigned int nbModuli = ((LatticesBasedCryptosystem*)cryptoMethod)->getnbModuli();
   // Trick, we get both a and b at the same time, b needs to be set afterwards
   uint64_t *a,*b;
   
@@ -762,8 +781,8 @@ void PIRReplyGeneratorNFL_internal::pushQuery(char* rawQuery, unsigned int size,
   { 
     for (unsigned i = 0 ; i < polyDegree ;i++) 
     {
-  	  ap[i+cm*polyDegree] = ((uint128_t) a[i+cm*polyDegree] << 64) / cryptoMethod->getmoduli()[cm];
-  	  if (lwe) bp[i+cm*polyDegree] = ((uint128_t) b[i+cm*polyDegree] << 64) / cryptoMethod->getmoduli()[cm];
+  	  ap[i+cm*polyDegree] = ((uint128_t) a[i+cm*polyDegree] << 64) / ((LatticesBasedCryptosystem*)cryptoMethod)->getmoduli()[cm];
+  	  if (lwe) bp[i+cm*polyDegree] = ((uint128_t) b[i+cm*polyDegree] << 64) / ((LatticesBasedCryptosystem*)cryptoMethod)->getmoduli()[cm];
     }  
   }
   queriesBuf[dim][0][nbr].a = a;
@@ -891,20 +910,6 @@ void PIRReplyGeneratorNFL_internal::freeQueriesBuffer()
     }
     delete[] queriesBuf; //allocated in intQueriesBuf with new.
     queriesBuf = NULL;
-  }
-}
-
-void PIRReplyGeneratorNFL_internal::freeResult()
-{
-  if(repliesArray!=NULL)
-  {
-    for(unsigned i=0 ; i < repliesAmount; i++)
-    {
-      if(repliesArray[i]!=NULL) free(repliesArray[i]);
-      repliesArray[i] = NULL;
-    }
-    free(repliesArray);
-    repliesArray=NULL;
   }
 }
 

@@ -18,13 +18,21 @@
 #include "PIRReplyGeneratorGMP.hpp"
 
 PIRReplyGeneratorGMP::PIRReplyGeneratorGMP()
-{}
+{
+    current_query_index = 0;
+    current_dim_index = 0;
+    cryptoMethod = NULL;
+}
 
 
 PIRReplyGeneratorGMP::PIRReplyGeneratorGMP( PIRParameters& param, DBHandler *db) :
   GenericPIRReplyGenerator(param,db),
 	finished(false) 
-{}
+{
+    current_query_index = 0;
+    current_dim_index = 0;
+    cryptoMethod = NULL;
+}
 
 /**
  * Read raw data from files and make padding if necessary
@@ -200,6 +208,16 @@ imported_database_t PIRReplyGeneratorGMP::generateReplyGeneric(bool keep_importe
   return database_wrapper;
 }
 
+
+
+void PIRReplyGeneratorGMP::generateReplyGenericFromData(const imported_database_t *database)
+{
+    datae = (mpz_t**)database->imported_database_ptr;
+    maxChunkSize = database->polysPerElement;
+    // Who needs locks...
+    generateReply();
+}
+
 void PIRReplyGeneratorGMP::generateReplyGenericFromData(const imported_database_t database)
 {
   datae = (mpz_t**) database.imported_database_ptr;
@@ -365,7 +383,7 @@ PIRReplyGeneratorGMP::generateReply(mpz_t *queries,
  **/
 void PIRReplyGeneratorGMP::computeMul(mpz_t query, mpz_t n, mpz_t res, int modulus_index) 
 {	
-	cryptoMethod->e_mul_const(res, query, n, modulus_index );
+	((PaillierAdapter*)cryptoMethod)->e_mul_const(res, query, n, modulus_index );
 #ifdef CRYPTO_DEBUG
   gmp_printf("PIRReplyGeneratorGMP: Raising %Zd\n To the power %Zd\nResult is %Zd\nModulus index is %d\n\n",query, n, res,modulus_index); 
 #endif
@@ -380,7 +398,7 @@ void PIRReplyGeneratorGMP::computeMul(mpz_t query, mpz_t n, mpz_t res, int modul
  **/
 void PIRReplyGeneratorGMP::computeSum(mpz_t a, mpz_t b, int modulus_index) 
 {
-	cryptoMethod->e_add(a, a, b, modulus_index);
+	((PaillierAdapter*)cryptoMethod)->e_add(a, a, b, modulus_index);
 }
 
 /**
@@ -452,6 +470,7 @@ unsigned long int PIRReplyGeneratorGMP::computeReplySizeInChunks(unsigned long i
 void PIRReplyGeneratorGMP::setPirParams(PIRParameters& _pirParam)
 {
 	pirParam = _pirParam;
+    initQueriesBuffer();
 }
 
 void PIRReplyGeneratorGMP::cleanQueryBuffer()
@@ -467,18 +486,12 @@ void PIRReplyGeneratorGMP::cleanQueryBuffer()
 	delete[] queriesBuf;
 }
 
-PIRReplyGeneratorGMP::~PIRReplyGeneratorGMP()
+void PIRReplyGeneratorGMP::freeQueries()
 {
+    cleanQueryBuffer();
 }
 
-void PIRReplyGeneratorGMP::freeResult()
+PIRReplyGeneratorGMP::~PIRReplyGeneratorGMP()
 {
-  for(unsigned i=0 ; i < repliesAmount; i++)
-  {
-    if(repliesArray[i]!=NULL) delete[] repliesArray[i];
-    repliesArray[i] = NULL;
-  }
-  free(repliesArray);
-  repliesArray=NULL;
 }
 
